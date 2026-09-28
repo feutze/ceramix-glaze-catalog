@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#173fca" />
+    <meta name="description" content="Search and compare pottery glazes from BLICK and Freeform, with Artx548 class inventory." />
+    <title>Ceramix Glaze Catalog</title>
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23173fca'/%3E%3Cpath d='M17 19h30l-4 28H21z' fill='%23fff'/%3E%3Cpath d='M22 26c7 5 13-5 20 0' fill='none' stroke='%23ff714c' stroke-width='5' stroke-linecap='round'/%3E%3C/svg%3E" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="#" aria-label="Ceramix home">
+        <span class="brand-mark" aria-hidden="true"><span></span></span>
+        <span><strong>Ceramix</strong><small>Glaze catalog</small></span>
+      </a>
+      <div class="header-actions">
+        <button class="ghost-button install-button" id="installButton" hidden>Install app</button>
+        <button class="icon-button" id="favoritesButton" aria-label="Show favorites" aria-pressed="false">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 4.7a5.5 5.5 0 0 0-7.8 0L12 5.8l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.4 1.1-1.1a5.5 5.5 0 0 0-.1-7.8Z"/></svg>
+          <span id="favoriteCount">0</span>
+        </button>
+      </div>
+    </header>
+
+    <main>
+      <section class="catalog-head" aria-labelledby="catalogTitle">
+        <div>
+          <p class="eyebrow">BLICK + Freeform + Artx548</p>
+          <h1 id="catalogTitle">Find the right glaze.</h1>
+          <p class="catalog-summary"><span id="productTotal">795</span> glazes, retailer prices, and class stock in one place.</p>
+        </div>
+        <div class="search-wrap">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m21 21-4.35-4.35m2.35-5.15a7.5 7.5 0 1 1-15 0 7.5 7.5 0 0 1 15 0Z"/></svg>
+          <label class="sr-only" for="searchInput">Search glazes</label>
+          <input id="searchInput" type="search" placeholder="Search name, number, brand, or line" autocomplete="off" />
+          <kbd>⌘ K</kbd>
+        </div>
+      </section>
+
+      <section class="toolbar" aria-label="Catalog controls">
+        <div class="quick-filters" role="group" aria-label="Quick filters">
+          <button class="chip active" data-view="all">All glazes</button>
+          <button class="chip" data-view="class">In class <span id="classCount">173</span></button>
+          <button class="chip" data-view="priced">Priced</button>
+          <button class="chip" data-view="favorites">Favorites</button>
+        </div>
+        <div class="toolbar-actions">
+          <label class="sort-control">Sort
+            <select id="sortSelect">
+              <option value="name">Name</option>
+              <option value="manufacturer">Manufacturer</option>
+              <option value="price-low">Price: low to high</option>
+              <option value="price-high">Price: high to low</option>
+              <option value="inventory">Class inventory</option>
+            </select>
+          </label>
+          <button class="filter-button" id="filterToggle" aria-expanded="false">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M7 12h10M10 17h4"/></svg>
+            Filters <span id="filterCount" hidden>0</span>
+          </button>
+        </div>
+      </section>
+
+      <div class="catalog-layout">
+        <aside class="filters" id="filters" aria-label="Filter glazes">
+          <div class="filter-heading">
+            <h2>Filters</h2>
+            <button id="closeFilters" class="icon-button close-filter" aria-label="Close filters">×</button>
+          </div>
+          <div id="filterFields"></div>
+          <button class="text-button" id="clearFilters">Clear all filters</button>
+        </aside>
+        <div class="filter-scrim" id="filterScrim"></div>
+
+        <section class="results" aria-live="polite" aria-busy="true">
+          <div class="results-meta">
+            <p><strong id="resultCount">0</strong> results</p>
+            <p id="updatedText">Loading inventory date…</p>
+          </div>
+          <div class="active-filters" id="activeFilters" aria-label="Active filters"></div>
+          <div class="card-grid" id="cardGrid"></div>
+          <div class="empty-state" id="emptyState" hidden>
+            <span aria-hidden="true">◌</span>
+            <h2>No glazes found</h2>
+            <p>Try a broader search or clear a filter.</p>
+            <button class="primary-button" id="emptyClear">Clear filters</button>
+          </div>
+          <button class="load-more" id="loadMore" hidden>Show more glazes</button>
+        </section>
+      </div>
+    </main>
+
+    <dialog id="detailDialog">
+      <div id="detailContent"></div>
+    </dialog>
+
+    <template id="cardTemplate">
+      <article class="glaze-card">
+        <button class="favorite-card" aria-label="Add to favorites">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 4.7a5.5 5.5 0 0 0-7.8 0L12 5.8l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.4 1.1-1.1a5.5 5.5 0 0 0-.1-7.8Z"/></svg>
+        </button>
+        <button class="card-open" aria-label="View glaze details">
+          <div class="swatch"><span class="movement-badge"></span><span class="stock-badge"></span></div>
+          <div class="card-copy">
+            <div class="card-kicker"><span class="manufacturer"></span><span class="number"></span></div>
+            <h2 class="name"></h2>
+            <p class="line"></p>
+            <div class="card-meta"><span class="cone"></span><span class="size"></span></div>
+            <div class="card-footer"><span class="price"></span><span class="offer-count"></span></div>
+          </div>
+        </button>
+        <a class="card-buy" target="_blank" rel="noopener">Shop retailer <span aria-hidden="true">↗</span></a>
+      </article>
+    </template>
+
+    <script src="app.js" defer></script>
+  </body>
+</html>
