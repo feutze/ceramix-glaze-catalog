@@ -1,0 +1,12 @@
+{
+  "name": "Ceramix Glaze Catalog",
+  "short_name": "Ceramix",
+  "description": "Search and compare pottery glazes, retailer prices, and Artx548 class inventory.",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f5f7fb",
+  "theme_color": "#173fca",
+  "icons": [
+    {"src":"icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}
+  ]
+}
