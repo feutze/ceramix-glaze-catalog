@@ -55,7 +55,7 @@ function loadLiveSheet(timeoutMs = 12000) {
       ? finish(new Error("Live sheet is unavailable"))
       : finish(null, response);
     script.onerror = () => finish(new Error("Live sheet could not be loaded"));
-    const query = new URLSearchParams({ gid: LIVE_SHEET.gid, headers: "1", tqx: `out:json;responseHandler:${callback}` });
+    const query = new URLSearchParams({ gid: LIVE_SHEET.gid, headers: "1", tqx: `out:json;responseHandler:${callback}`, _: String(Date.now()) });
     script.src = `https://docs.google.com/spreadsheets/d/${LIVE_SHEET.id}/gviz/tq?${query}`;
     document.head.append(script);
   });
@@ -65,6 +65,7 @@ function productsFromSheet(response) {
   const table = response?.table;
   if (!table?.cols || !table?.rows) throw new Error("Live sheet returned no inventory");
   const headers = table.cols.map(column => String(column.label || column.id || "").trim());
+  if (!["Manufacturer", "Glaze Number", "Glaze Name", "Inventory"].every(header => headers.includes(header))) throw new Error("Live sheet columns do not match the catalog");
   const valueOf = cell => cell == null ? "" : (cell.v ?? cell.f ?? "");
   const records = table.rows.map(row => Object.fromEntries(headers.map((header, index) => [header, valueOf(row.c?.[index])])));
   const groups = new Map();
@@ -75,7 +76,7 @@ function productsFromSheet(response) {
     const name = String(record["Glaze Name"] || "").trim();
     if (!manufacturer || !number || !name) return;
     const key = `${manufacturer.toUpperCase()}::${number.toUpperCase().replace(/[^A-Z0-9]/g, "")}`;
-    const price = Number(record["$18.00"]);
+    const price = record.Price === "" ? NaN : Number(String(record.Price).replace(/[$,]/g, ""));
     const inventory = Number(record.Inventory);
     const notes = textList(record.Notes);
     const glazeNotes = textList(record["Glaze Notes"]);
@@ -83,9 +84,9 @@ function productsFromSheet(response) {
       id: key, manufacturer, number, name,
       line: String(record["Glaze Line"] || "Line not listed").trim(),
       type: String(record["Type of Glaze"] || "Type not listed").trim(),
-      cone: String(record["Cone 5–6"] || "Cone not listed").trim(),
-      size: String(record.Pint || "Size not listed").trim(),
-      color: String(record["Other/Mixed"] || "Other/Mixed").trim(),
+      cone: String(record["Firing Cone"] || "Cone not listed").trim(),
+      size: String(record.Size || "Size not listed").trim(),
+      color: String(record["Color Family"] || "Other/Mixed").trim(),
       inventory: Number.isFinite(inventory) ? inventory : 0,
       inventoryLevel: null, notes, glazeNotes,
       movement: movementFor(glazeNotes), offers: [], minPrice: null,
@@ -272,7 +273,7 @@ function openDetail(product) {
       <div class="fact"><small>Movement</small><strong>${escapeHtml(product.movement || "Not classified")}</strong></div>
     </div>
     ${glazeNotes ? `<div class="glaze-notes ${product.movement?.toLowerCase() || ""}"><h3>Glaze notes</h3>${glazeNotes}</div>` : ""}
-    <div class="inventory-panel"><div><p>${product.inventory > 0 ? `${product.inventory} in Artx548 class stock` : "Not currently in class stock"}</p><span>${product.inventoryLevel ? `${escapeHtml(product.inventoryLevel)} level` : "Based on the September inventory"}</span></div><strong>${escapeHtml(product.size)}</strong></div>
+    <div class="inventory-panel"><div><p>${product.inventory > 0 ? `${product.inventory} in Artx548 class stock` : "Not currently in class stock"}</p><span>${product.inventoryLevel ? `${escapeHtml(product.inventoryLevel)} level` : (state.live ? "Live Google Sheets inventory" : "Backup inventory; live connection unavailable")}</span></div><strong>${escapeHtml(product.size)}</strong></div>
     <h3>Where to buy</h3><div class="offers">${offers}</div></div>`;
   $(".dialog-close", $("#detailContent")).addEventListener("click", () => $("#detailDialog").close());
   $("#detailDialog").showModal();
@@ -364,16 +365,18 @@ async function init() {
       data = { products: productsFromSheet(sheet) };
       live = data.products.length > 0;
     } catch (liveError) {
-      const response = await fetch("data.json");
+      console.warn("Live inventory unavailable; using backup catalog", liveError);
+      const response = await fetch("data.json", { cache: "no-store" });
       if (!response.ok) throw new Error("Inventory could not be loaded");
       data = await response.json();
     }
     state.products = data.products;
+    state.live = live;
     if (live) {
       $("#updatedText").textContent = "Live inventory from Google Sheets";
     } else if (data.updated) {
       const updated = new Date(`${data.updated}T12:00:00`);
-      $("#updatedText").textContent = `Inventory updated ${updated.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}`;
+      $("#updatedText").textContent = `Backup inventory — live Google Sheets connection unavailable. Backup dated ${updated.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}`;
     }
     $("#productTotal").textContent = data.products.length.toLocaleString();
     $("#classCount").textContent = data.products.filter(product => product.inventory > 0).length.toLocaleString();
